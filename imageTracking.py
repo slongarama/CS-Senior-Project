@@ -18,5 +18,6 @@ rgbFrame = PiRGBArray(camera, size = camera.resolution)
 time.sleep(0.1)
 
 frame1 = captureProcessFrame(camera, rgbFrame, BLUR_REGION)
-cv2.imshow("blurred", frame1)
-cv2.waitKey(0)
+#cv2.imshow("blurred", frame1)
+#cv2.waitKey(0)
+cv2.imwrite("blurred.png", frame1)
