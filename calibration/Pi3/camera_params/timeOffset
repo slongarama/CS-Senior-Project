@@ -1,0 +1,5 @@
+server 162.159.200.1, stratum 3, offset -0.001118, delay 0.03621
+server 163.237.218.19, stratum 1, offset 0.000956, delay 0.05974
+server 50.116.52.97, stratum 3, offset 0.028237, delay 0.09216
+server 193.29.63.150, stratum 2, offset -0.000208, delay 0.05556
+10 Nov 11:48:05 ntpdate[2730]: adjust time server 163.237.218.19 offset 0.000956 sec

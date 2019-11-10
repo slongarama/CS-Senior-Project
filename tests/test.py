@@ -18,3 +18,4 @@ image = rawCapture.array
 
 # display the image on screen and wait for a keypress
 cv2.imwrite("test.png", image)
+
