@@ -10,12 +10,15 @@ import argparse
 import cv2
 import imutils
 import time
+import pickle
+
+DEFAULT_BUFFER = 64
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-v", "--video",
 	help="path to the (optional) video file")
-ap.add_argument("-b", "--buffer", type=int, default=64,
+ap.add_argument("-b", "--buffer", type=int, default=DEFAULT_BUFFER,
 	help="max buffer size")
 args = vars(ap.parse_args())
 
@@ -25,6 +28,7 @@ args = vars(ap.parse_args())
 greenLower = (22, 65, 114)
 greenUpper = (52, 255, 255)
 pts = deque(maxlen=args["buffer"])
+all_pts = deque(maxlen= 2*DEFAULT_BUFFER)
 
 # if a video path was not supplied, grab the reference
 # to the webcam
@@ -91,6 +95,7 @@ while True:
 
 	# update the points queue
 	pts.appendleft(center)
+	all_pts.appendleft(center)
 
 	# loop over the set of tracked points
 	for i in range(1, len(pts)):
@@ -122,3 +127,12 @@ else:
 
 # close all windows
 cv2.destroyAllWindows()
+
+target_file = open('path.pkl', 'wb')
+pickle.dump(all_pts, target_file)
+target_file.close()
+
+#reload object from file
+# load_file = open('path.pkl', 'rb')
+# ball_path = pickle.load(load_file)
+# load_file.close()
