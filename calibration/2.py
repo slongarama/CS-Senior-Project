@@ -2,12 +2,20 @@ import cv2
 import numpy as np
 import glob
 import PIL
+import argparse
 from tqdm import tqdm
 from PIL import ExifTags
 from PIL import Image
 #============================================
 # Camera calibration
 #============================================
+
+# construct the argument parse and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-p", "--path",
+	help="path to directory where images are stored")
+args = vars(ap.parse_args())
+path = args.get("path", "Pi3")
 
 #Define size of chessboard target
 chessboard_size = (9,6)
@@ -21,7 +29,7 @@ objp = np.zeros((np.prod(chessboard_size),3),dtype=np.float32)
 objp[:,:2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1,2)
 
 #read images
-calibration_paths = glob.glob('Pi3/*')
+calibration_paths = glob.glob(path + '/*')
 
 #Iterate over images to find intrinsic matrix
 for image_path in tqdm(calibration_paths):
@@ -60,8 +68,7 @@ for image_path in tqdm(calibration_paths):
 
     #Get focal length in tuple form
     focal_length_exif = exif_data['FocalLength']
-    
+
     #Get focal length in decimal form
     focal_length = focal_length_exif[0]/focal_length_exif[1]
     np.save("./camera_params/FocalLength", focal_length)
-
