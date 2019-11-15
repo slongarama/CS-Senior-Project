@@ -12,12 +12,12 @@ from PIL import Image
 
 # # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-p", "--pi",
-	help="Name of Pi we are calibrating, e.g. 'Pi3'", default="Pi3")
+ap.add_argument("-p", "--pi_name",
+	help="Name of Pi we are calibrating, e.g. 'Pi3'. Make sure this folder exists in the current directory.", required=True)
 args = vars(ap.parse_args())
-pi_num = args.get("path")
-if pi_num is None:
-	pi_num = "Pi3"
+pi_num = args.get("pi_name")
+# if pi_num is None:
+# 	pi_num = "Pi3"
 
 #Define size of chessboard target
 chessboard_size = (9,6)
