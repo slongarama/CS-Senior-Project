@@ -8,7 +8,7 @@ import imutils
 import time
 import pickle
 
-DEFAULT_BUFFER = 64
+DEFAULT_BUFFER = 4096
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
@@ -34,35 +34,74 @@ load_file = open('path.pkl', 'rb')
 pts = pickle.load(load_file)
 load_file.close()
 
-# keep looping
-while True:
-    # grab the current frame
-    frame = vs.read()
+img = np.zeros((600,600,3), np.uint8)
+val = 255
 
-    # handle the frame from VideoCapture or VideoStream
-    frame = frame[1] if args.get("video", False) else frame
+for i in range(1, len(pts)):
 
-    # if we are viewing a video and we did not grab a frame,
-    # then we have reached the end of the video
-    if frame is None:
-        break
+    # if either of the tracked points are None, ignore
+    # them
+    if pts[i - 1] is None or pts[i] is None:
+        continue
 
-        # resize the frame, blur it, and convert it to the HSV
-        # color space
-        frame = imutils.resize(frame, width=600)
+    if val < 100: val = 255
+    else: val -= 30
 
-        # loop over the set of tracked points
-        for i in range(1, len(pts)):
+    # otherwise, compute the thickness of the line and
+    # draw the connecting lines
+    thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
+    img = cv2.line(img, pts[i - 1], pts[i], (0, 0, val), thickness)
 
-            # if either of the tracked points are None, ignore
-            # them
-            if pts[i - 1] is None or pts[i] is None:
-                continue
+    # show the frame to our screen
+    cv2.imshow("lines", img)
 
-                # otherwise, compute the thickness of the line and
-                # draw the connecting lines
-                thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
-                cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
+cv2.imwrite("reconstructed.jpg", img)
 
-                # show the frame to our screen
-                cv2.imshow("Frame", frame)
+
+# for i in range(1, len(pts)):
+#
+#     # if either of the tracked points are None, ignore
+#     # them
+#     if pts[i - 1] is None or pts[i] is None:
+#         continue
+#
+#         # otherwise, compute the thickness of the line and
+#         # draw the connecting lines
+#         thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
+#         img = cv2.line(img, pts[i - 1], pts[i], (0, 0, 255), thickness)
+#
+#         # show the frame to our screen
+#         cv2.imshow("lines", img)
+#
+# # keep looping
+# while True:
+#     # grab the current frame
+#     frame = vs.read()
+#
+#     # handle the frame from VideoCapture or VideoStream
+#     frame = frame[1] if args.get("video", False) else frame
+#
+#     # if we are viewing a video and we did not grab a frame,
+#     # then we have reached the end of the video
+#     if frame is None:
+#         break
+#
+#         # resize the frame, blur it, and convert it to the HSV
+#         # color space
+#         frame = imutils.resize(frame, width=600)
+#
+#         # loop over the set of tracked points
+#         for i in range(1, len(pts)):
+#
+#             # if either of the tracked points are None, ignore
+#             # them
+#             if pts[i - 1] is None or pts[i] is None:
+#                 continue
+#
+#                 # otherwise, compute the thickness of the line and
+#                 # draw the connecting lines
+#                 thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
+#                 cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
+#
+#                 # show the frame to our screen
+#                 cv2.imshow("Frame", frame)

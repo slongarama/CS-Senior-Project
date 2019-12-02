@@ -28,8 +28,8 @@ args = vars(ap.parse_args())
 greenLower = (22, 65, 114)
 greenUpper = (52, 255, 255)
 pts = deque(maxlen=args["buffer"])
-time = deque(maxlen= 2*DEFAULT_BUFFER)
-4ts = deque(maxlen= 2*DEFAULT_BUFFER)
+all_time = deque(maxlen= 2*DEFAULT_BUFFER)
+all_pts = deque(maxlen= 2*DEFAULT_BUFFER)
 
 # if a video path was not supplied, grab the reference
 # to the webcam
@@ -97,7 +97,7 @@ while True:
 	# update the points queue
 	pts.appendleft(center)
 	all_pts.appendleft(center)
-	time.append(time.time())
+	all_time.append(time.time())
 
 	# loop over the set of tracked points
 	for i in range(1, len(pts)):
@@ -130,12 +130,9 @@ else:
 # close all windows
 cv2.destroyAllWindows()
 
-target_file = open('path.pkl', 'wb')
-target_file = open('path.pkl', 'wb')
-pickle.dump(all_pts, target_file)
-target_file.close()
-
-#reload object from file
-# load_file = open('path.pkl', 'rb')
-# ball_path = pickle.load(load_file)
-# load_file.close()
+time_file = open('time.pkl', 'wb')
+path_file = open('path.pkl', 'wb')
+pickle.dump(all_time, time_file)
+pickle.dump(all_pts, path_file)
+time_file.close()
+path_file.close()
