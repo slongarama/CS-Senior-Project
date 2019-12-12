@@ -17,7 +17,10 @@ rawCapture = PiRGBArray(camera)
  
 # allow the camera to warmup
 time.sleep(0.1)
- 
+
+# add delay if necessary
+time.sleep(5)
+
 # grab an image from the camera
 camera.capture(rawCapture, format="bgr")
 image = rawCapture.array
