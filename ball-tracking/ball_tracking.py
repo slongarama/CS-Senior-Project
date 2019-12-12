@@ -11,6 +11,10 @@ import cv2
 import imutils
 import time
 import pickle
+import serial
+
+ser = serial.Serial('/dev/ttyUSB0', 9600)
+# ser = serial.Serial('/dev/tty.SLAB_USBtoUART', 9600)
 
 DEFAULT_BUFFER = 64
 
@@ -25,8 +29,14 @@ args = vars(ap.parse_args())
 # define the lower and upper boundaries of the "green"
 # ball in the HSV color space, then initialize the
 # list of tracked points
-greenLower = (22, 65, 114)
-greenUpper = (52, 255, 255)
+
+# for test video
+# greenLower = (22, 65, 114)
+# greenUpper = (52, 255, 255)
+
+greenLower = (4, 7, 128)
+greenUpper = (30, 177, 255)
+
 pts = deque(maxlen=args["buffer"])
 all_time = deque(maxlen= 2*DEFAULT_BUFFER)
 all_pts = deque(maxlen= 2*DEFAULT_BUFFER)
@@ -43,6 +53,10 @@ else:
 # allow the camera or video file to warm up
 time.sleep(2.0)
 
+start = "<".encode('utf-8')
+end = ">".encode('utf-8')
+counter = 0
+
 # keep looping
 while True:
 	# grab the current frame
@@ -58,7 +72,10 @@ while True:
 
 	# resize the frame, blur it, and convert it to the HSV
 	# color space
+	# print(frame.shape) # original (640, 1152, 3)
 	frame = imutils.resize(frame, width=600)
+	cv2.flip(frame, 0)
+	# print(frame.shape) # resized (333, 600, 3)
 	blurred = cv2.GaussianBlur(frame, (11, 11), 0)
 	hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 
@@ -99,6 +116,24 @@ while True:
 	all_pts.appendleft(center)
 	all_time.append(time.time())
 
+	# send position over serial
+	if counter % 2 == 0 and center is not None:
+		print(center[0], center[1])
+		strx = str(center[0])
+		stry = str(center[1])
+		encx = strx.encode('utf-8')
+		ency = stry.encode('utf-8')
+
+		ser.write(start)
+		ser.write(encx)
+		ser.write(','.encode('utf-8'))
+		ser.write(ency)
+		ser.write(end)
+
+	counter += 1
+	if counter > 2000:
+		counter = 0
+
 	# loop over the set of tracked points
 	for i in range(1, len(pts)):
 		# if either of the tracked points are None, ignore
@@ -130,9 +165,11 @@ else:
 # close all windows
 cv2.destroyAllWindows()
 
-time_file = open('time.pkl', 'wb')
-path_file = open('path.pkl', 'wb')
-pickle.dump(all_time, time_file)
-pickle.dump(all_pts, path_file)
-time_file.close()
-path_file.close()
+# time_file = open('time.pkl', 'wb')
+# path_file = open('path.pkl', 'wb')
+# pickle.dump(all_time, time_file)
+# pickle.dump(all_pts, path_file)
+# time_file.close()
+# path_file.close()
+
+print(all_pts)

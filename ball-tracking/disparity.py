@@ -10,27 +10,29 @@ from matplotlib import pyplot as plt
 # Function declarations
 #=====================================
 
+ply_header = '''ply
+format ascii 1.0
+element vertex %(vert_num)d
+property float x
+property float y
+property float z
+property uchar red
+property uchar green
+property uchar blue
+end_header
+'''
+
 #Function to create point cloud file
-def create_output(vertices, colors, filename):
-	colors = colors.reshape(-1,3)
-	vertices = np.hstack([vertices.reshape(-1,3),colors])
+def create_output(verts, colors, fn):
+    verts = verts.reshape(-1, 3)
+    colors = colors.reshape(-1, 3)
+    verts = np.hstack([verts, colors])
+    with open(fn, 'wb') as f:
+        f.write((ply_header % dict(vert_num=len(verts))).encode('utf-8'))
+        np.savetxt(f, verts, fmt='%f %f %f %d %d %d ')
 
-	ply_header = '''ply
-		format ascii 1.0
-		element vertex %(vert_num)d
-		property float x
-		property float y
-		property float z
-		property uchar red
-		property uchar green
-		property uchar blue
-		end_header
-		'''
-	with open(filename, 'w') as f:
-		f.write(ply_header %dict(vert_num=len(vertices)))
-		np.savetxt(f,vertices,'%f %f %f %d %d %d')
 
-#Function that Downsamples image x number (reduce_factor) of times.
+#Function that downsamples image x number (reduce_factor) of times.
 def downsample_image(image, reduce_factor):
 	for i in range(0,reduce_factor):
 		#Check if image is color or grayscale
@@ -57,10 +59,11 @@ K4 = np.load('../calibration/Pi4/camera_params/K.npy')
 dist4 = np.load('../calibration/Pi4/camera_params/dist.npy')
 
 #Specify image paths
-img_path1 = './reconstruct_this/left.png'
-img_path2 = './reconstruct_this/right.png'
-# img_path1 = '/home/pi/opencv/samples/data/aloeL.jpg'
-# img_path2 = '/home/pi/opencv/samples/data/aloeR.jpg'
+# img_path1 = './reconstruct_this/left.png'
+# img_path2 = './reconstruct_this/right.png'
+
+img_path1 = '/home/pi/opencv/samples/data/aloeL.jpg'
+img_path2 = '/home/pi/opencv/samples/data/aloeR.jpg'
 
 if img_path1 == None or img_path2 == None:
 	print("Reconstruction images not found. Please make sure 'left.png' and 'right.png' exist in the reconstruct_this folder.")
@@ -68,56 +71,34 @@ if img_path1 == None or img_path2 == None:
 	''
 
 #Load pictures
-# img_1_downsampled = cv2.imread(img_path1)
-# img_2_downsampled = cv2.imread(img_path2)
-
-#Load pictures
 img_1 = cv2.imread(img_path1)
 img_2 = cv2.imread(img_path2)
 
-#Get height and width. Note: It assumes that both pictures are the same size. They HAVE to be same size and height.
-# h,w = img_2.shape[:2]
-#
-# #Get optimal camera matrix for better undistortion
-# new_camera_matrix3, roi3 = cv2.getOptimalNewCameraMatrix(K3,dist3,(w,h),1,(w,h))
-# new_camera_matrix4, roi4 = cv2.getOptimalNewCameraMatrix(K4,dist4,(w,h),1,(w,h))
-#
-# #Undistort images
-# img_1_undistorted = cv2.undistort(img_1, K3, dist3, None, new_camera_matrix3)
-# img_2_undistorted = cv2.undistort(img_2, K4, dist4, None, new_camera_matrix4)
-
-#Downsample each image 3 times (because they're too big)
-# img_1_downsampled = downsample_image(img_1_undistorted,3)
-# img_2_downsampled = downsample_image(img_2_undistorted,3)
-
-img_1_downsampled = img_1
-img_2_downsampled = img_2
-#
 # cv2.imwrite('./reconstruct_this/undistorted_left.jpg', img_1_downsampled)
 # cv2.imwrite('./reconstruct_this/undistorted_right.jpg', img_2_downsampled)
-
 
 #Set disparity parameters
 #Note: disparity range is tuned according to specific parameters obtained through trial and error.
 win_size = 2
-min_disp = -1
-max_disp = 31 #min_disp * 9
+min_disp = 0
+max_disp = 96
 num_disp = max_disp - min_disp # Needs to be divisible by 16
 
 #Create Block matching object.
-stereo = cv2.StereoSGBM_create(minDisparity= min_disp,
+stereo = cv2.StereoSGBM_create(
+	minDisparity= min_disp,
 	numDisparities = num_disp,
-	blockSize = 5,
+	blockSize = 7,
 	uniquenessRatio = 5,
-	speckleWindowSize = 5,
-	speckleRange = 3,
+	speckleWindowSize = 0,
+	speckleRange = 2,
 	disp12MaxDiff = 2,
-	P1 = 8*3*win_size**2,#8*3*win_size**2,
-	P2 =32*3*win_size**2) #32*3*win_size**2)
+	P1 = 8*3*win_size**2,
+	P2 = 32*3*win_size**2)
 
 #Compute disparity map
 print ("\nComputing the disparity  map...")
-disparity_map = stereo.compute(img_1_downsampled, img_2_downsampled)
+disparity_map = stereo.compute(img_1, img_2)
 
 #Show disparity map before generating 3D cloud to verify that point cloud will be usable.
 plt.imshow(disparity_map,'gray')
@@ -128,8 +109,8 @@ plt.show()
 #Generate  point cloud.
 print ("\nGenerating the 3D map...")
 
-#Get new downsampled width and height
-h,w = img_2_downsampled.shape[:2]
+#Get width and height
+h,w = img_1.shape[:2]
 
 #Load focal length.
 focal_length3 = np.load('../calibration/Pi3/camera_params/FocalLength.npy')
@@ -163,7 +144,7 @@ Q2_4 = np.float32([[1,0,0,0],
 #Reproject points into 3D
 points_3D = cv2.reprojectImageTo3D(disparity_map, Q2_3)
 #Get color points
-colors = cv2.cvtColor(img_1_downsampled, cv2.COLOR_BGR2RGB)
+colors = cv2.cvtColor(img_1, cv2.COLOR_BGR2RGB)
 
 #Get rid of points with value 0 (i.e no depth)
 mask_map = disparity_map > disparity_map.min()
